@@ -2,8 +2,8 @@
 
 To access the webapp, you must [Click Here](https://webscrapperapp.herokuapp.com/).
 
-The APP is hosted via Heroku and github.
+##Accessing the web Scraper
 
 Heroku App Link: (https://webscrapperapp.herokuapp.com/)
 
-GitHub Repo Link: 
+GitHub Repo Link: (https://github.com/ejbronze/webScraper)
