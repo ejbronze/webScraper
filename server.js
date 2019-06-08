@@ -1,91 +1,42 @@
-// Dependencies
+// Web Scraper Homework Solution Example
+// (be sure to watch the video to see
+// how to operate the site in the browser)
+// -/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/
+
+// Require our dependencies
 var express = require("express");
-var mongojs = require("mongojs");
 var mongoose = require("mongoose");
-// Require axios and cheerio. This makes the scraping possible
-var axios = require("axios");
-var cheerio = require("cheerio");
-var MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
+var exphbs = require("express-handlebars");
 
-mongoose.connect(MONGODB_URI);
+// Set up our port to be either the host's designated port, or 3000
+var PORT = process.env.PORT || 3000;
 
-// Initialize Express
+// Instantiate our Express App
 var app = express();
 
-// Database configuration
-var databaseUrl = "curbed";
-var collections = ["curbedPosts"];
+// Require our routes
+var routes = require("./routes");
 
-// Hook mongojs configuration to the db variable
-var db = mongojs(databaseUrl, collections);
-db.on("error", function(error) {
-  console.log("Database Error:", error);
-});
+// Parse request body as JSON
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+// Make public a static folder
+app.use(express.static("public"));
 
-// Main route (simple Hello World Message)
-app.get("/", function(req, res) {
-  res.send("Hello world");
-});
+// Connect Handlebars to our Express app
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
+app.set("view engine", "handlebars");
 
-// Retrieve data from the db
-app.get("/all", function(req, res) {
-  // Find all results from the curbedPosts collection in the db
-  db.curbedPosts.find({}, function(error, found) {
-    // Throw any errors to the console
-    if (error) {
-      console.log(error);
-    }
-    // If there are no errors, send the data to the browser as json
-    else {
-      res.json(found);
-    }
-  });
-});
+// Have every request go through our route middleware
+app.use(routes);
 
-// Scrape data from one site and place it into the mongodb db
-app.get("/scrape", function(req, res) {
-  // Make a request via axios for the news section of `ycombinator`
-  axios.get("https://ny.curbed.com/").then(function(response) {
-    // Load the html body from axios into cheerio
-    var $ = cheerio.load(response.data);
-    // For each element with a "title" class
-    $(".c-entry-box--compact__title").each(function(i, element) {
-      // Save the text and href of each link enclosed in the current element
-      var title = $(element)
-        .children("a")
-        .text();
-      var link = $(element)
-        .children("a")
-        .attr("href");
+// If deployed, use the deployed database. Otherwise use the local mongoHeadlines database
+var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
 
-      // If this found element had both a title and a link
-      if (title && link) {
-        // Insert the data in the curbedPosts db
-        db.curbedPosts.insert(
-          {
-            title: title,
-            link: link
-          },
-          function(err, inserted) {
-            if (err) {
-              // Log the error if one is encountered during the query
-              console.log(err);
-            } else {
-              // Otherwise, log the inserted data
-              console.log(inserted);
-            }
-          }
-        );
-      }
-    });
-  });
+// Connect to the Mongo DB
+mongoose.connect(MONGODB_URI);
 
-  // Send a "Scrape Complete" message to the browser
-  res.send("Scrape Complete. Use /scrape to scrape, and /all for results");
-});
-
-// Listen on port 3000
-app.listen(process.env.PORT || 3000, function() {
-  console.log("App running on port 3000!");
+// Listen on the port
+app.listen(PORT, function() {
+  console.log("Listening on port: " + PORT);
 });
